@@ -37,8 +37,8 @@ namespace SBMAPIInterface
         {
             token = "";
 
-            string message = "{\"credentials\": { \"username\" : \"" + userName + "\", \"password\":\"" + password + "\"}}";
-            var request = new HttpRequestMessage(HttpMethod.Post, m_address + ":8085/idp/services/rest/TokenService/")
+            string message = $"{{\"credentials\": {{ \"username\" : \"{userName}\", \"password\":\"{password}\"}}}}";
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{m_address}:8085/idp/services/rest/TokenService/")
             {
                 Content = new StringContent(message, Encoding.UTF8, "application/json")
             };
@@ -60,7 +60,7 @@ namespace SBMAPIInterface
 
         public string GetVersion()
         {
-            var postRequest = new HttpRequestMessage(HttpMethod.Post, m_address + "/jsonapi/getversion");
+            var postRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getversion");
             var result = m_client.SendAsync(postRequest).Result.Content.ReadAsStringAsync();
 
             var versionResponse = JsonDocument.Parse(result.Result);
@@ -73,17 +73,18 @@ namespace SBMAPIInterface
         /// </summary>
         /// <param name="table"></param>
         /// <param name="range"></param>
-        public void ReadItems(int table, int range)
+        public List<WorkItem> ReadItems(int table, int range)
         {
             int counter = 0;
 
+            List<WorkItem> items = new List<WorkItem>();
             List<int> integerList = Enumerable.Range(0, range).ToList();
             Parallel.ForEach(integerList, i =>
             {
                 try
                 {
                     Interlocked.Increment(ref counter);
-                    var getItemRequest = new HttpRequestMessage(HttpMethod.Post, m_address + "/jsonapi/getItem/" + table + "/" + i);
+                    var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getItem/{table}/{i}");
                     var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
                     var itemResponse = JsonDocument.Parse(getItemResult.Result);
@@ -91,19 +92,20 @@ namespace SBMAPIInterface
                     if (type.GetString() == "ERROR")
                         return;
 
-                    itemResponse.RootElement.GetProperty("item").GetProperty("id").TryGetProperty("itemId", out JsonElement valItem);
-                    string id = valItem.GetString();
+                    WorkItem item = new WorkItem();
+                    item.ParseFromJson(itemResponse.RootElement.GetProperty("item"));
 
-                    itemResponse.RootElement.GetProperty("item").GetProperty("fields").TryGetProperty("TITLE", out valItem);
-                    string title = valItem.GetProperty("value").GetString();
+                    Console.WriteLine($"{counter} {item.ID} {item.Title}");
 
-                    Console.WriteLine(counter + " " + id + " " + title);
+                    lock (items)
+                        items.Add(item);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
                 }
             });
+            return items;
         }
 
         /// <summary>
@@ -114,7 +116,7 @@ namespace SBMAPIInterface
         {
             try
             {
-                var getItemRequest = new HttpRequestMessage(HttpMethod.Post, m_address + "/workcenter/tmtrack.dll?JSONPage&command=jsonapi&JSON_Func=getitemsbyitemid&JSON_P1=" + table + "&JSON_P2=*&pagesize=1000");
+                var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/workcenter/tmtrack.dll?JSONPage&command=jsonapi&JSON_Func=getitemsbyitemid&JSON_P1={table}&JSON_P2=*&pagesize=1000");
                 var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
                 var itemResponse = JsonDocument.Parse(getItemResult.Result);
@@ -134,24 +136,42 @@ namespace SBMAPIInterface
         /// Read all items from a preconfigured report
         /// </summary>
         /// <param name="reportID"></param>
-        public void ReadItemsFromReport(int reportID)
+        public List<WorkItem> ReadItemsFromReport(int reportID)
         {
+            List<WorkItem> items = new List<WorkItem>();
             try
             {
-                var getItemRequest = new HttpRequestMessage(HttpMethod.Post, m_address + "/jsonapi/getitemsbylistingreport/" + reportID + "?pagesize=100&rptkey=1312321&recno=2");
-                var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
+                int startID = 0;
+                const int increment = 100;
+                while (true)
+                {
+                    var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getitemsbylistingreport/{reportID}?pagesize={increment}&rptkey=1312321&recno={startID}");
+                    var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
-                var itemResponse = JsonDocument.Parse(getItemResult.Result);
-                var type = itemResponse.RootElement.GetProperty("result").GetProperty("type");
-                if (type.GetString() == "ERROR")
-                    return;
+                    var itemResponse = JsonDocument.Parse(getItemResult.Result);
+                    var type = itemResponse.RootElement.GetProperty("result").GetProperty("type");
+                    if (type.GetString() == "ERROR")
+                        return items;
 
-                //TODO: Parse list of items
+                    foreach (var item in itemResponse.RootElement.GetProperty("items").EnumerateArray())
+                    {
+                        WorkItem workItem = new WorkItem();
+                        workItem.ParseFromJson(item);
+                        items.Add(workItem);
+                    }
+
+                    if (itemResponse.RootElement.GetProperty("items").EnumerateArray().Count() < increment)
+                        break;
+
+                    startID += increment;
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
+            return items;
         }
     }
 }

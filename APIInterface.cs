@@ -105,6 +105,7 @@ namespace SBMAPIInterface
                     Console.WriteLine(e);
                 }
             });
+
             return items;
         }
 
@@ -112,8 +113,9 @@ namespace SBMAPIInterface
         /// Function to read all items from the table. Caused by paging issues, can only read the first 1000 items
         /// </summary>
         /// <param name="table"></param>
-        public void ReadAllItems(int table)
+        public List<WorkItem> ReadAllItems(int table)
         {
+            List<WorkItem> items = new List<WorkItem>();
             try
             {
                 var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/workcenter/tmtrack.dll?JSONPage&command=jsonapi&JSON_Func=getitemsbyitemid&JSON_P1={table}&JSON_P2=*&pagesize=1000");
@@ -122,14 +124,21 @@ namespace SBMAPIInterface
                 var itemResponse = JsonDocument.Parse(getItemResult.Result);
                 var type = itemResponse.RootElement.GetProperty("result").GetProperty("type");
                 if (type.GetString() == "ERROR")
-                    return;
+                    return items;
 
-                //TODO: Parse list of items
+                foreach (var item in itemResponse.RootElement.GetProperty("items").EnumerateArray())
+                {
+                    WorkItem workItem = new WorkItem();
+                    workItem.ParseFromJson(item);
+                    items.Add(workItem);
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
+            return items;
         }
 
         /// <summary>

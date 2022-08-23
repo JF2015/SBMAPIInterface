@@ -22,17 +22,22 @@ namespace SBMAPIInterface
         {
             Console.WriteLine("Connecting to SBM");
 
-            APIInterface smbInterface = new APIInterface(serverAdress);
-            smbInterface.Open(userName, password);
+            APIInterface sbmApiInterface = new APIInterface(serverAdress);
+            sbmApiInterface.Open(userName, password);
 
-            string version = smbInterface.GetVersion();
+            string version = sbmApiInterface.GetVersion();
             Console.WriteLine(version);
             Console.WriteLine();
 
             Console.WriteLine("Listing work items");
-            smbInterface.ReadItems(tableID, 100000);
-            //smbInterface.ReadAllItems(tableID);
-            //smbInterface.ReadItemsFromReport(reportIDForAllItems);
+            //sbmApiInterface.ReadItems(tableID, 100000);
+            //sbmApiInterface.ReadAllItems(tableID);
+            var workItems = sbmApiInterface.ReadItemsFromReport(reportIDForAllItems);
+            var sorted = workItems.OrderBy(p => p.ID);
+            foreach (var item in sorted)
+            {
+                Console.WriteLine(item.ID + " " + item.Title);
+            }
         }
     }
 }

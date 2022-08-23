@@ -10,6 +10,8 @@ namespace SBMAPIInterface
         public string Description { get; set; }
         public string Submitter { get; set; }
         public string State { get; set; }
+        public string? Project { get; set; }
+        public DateTime? SubmitDate { get; set; }
 
         public void ParseFromJson(JsonElement itemElement)
         {
@@ -28,6 +30,19 @@ namespace SBMAPIInterface
 
             fields.TryGetProperty("STATE", out valItem);
             State = valItem.GetProperty("value").GetString();
+
+            fields.TryGetProperty("PROJECTID", out valItem);
+            Project = valItem.GetProperty("name").GetString();
+
+            fields.TryGetProperty("SUBMITDATE", out valItem);
+            SubmitDate = toDate(valItem.GetProperty("svalue").GetString());
+        }
+
+        private static DateTime? toDate(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s) || s == "(None)" || s == "&nbsp;")
+                return null;
+            return DateTime.Parse(s);
         }
     }
 }

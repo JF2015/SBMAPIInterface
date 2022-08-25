@@ -15,6 +15,8 @@ namespace SBMAPIInterface
         public string Type { get; set; }
         public string? Project { get; set; }
         public DateTime? SubmitDate { get; set; }
+        public string Link { get; set; }
+        public bool IsActive { get; set; }
 
         //Custom Fields - these fields have to be adapted when used with different databases
         public string Severity { get; set; }
@@ -26,6 +28,9 @@ namespace SBMAPIInterface
         {
             itemElement.GetProperty("id").TryGetProperty("itemId", out JsonElement valItem);
             ID = Convert.ToInt32(valItem.GetString());
+
+            itemElement.GetProperty("id").TryGetProperty("url", out valItem);
+            Link = valItem.GetString();
 
             JsonElement fields = itemElement.GetProperty("fields");
             fields.TryGetProperty("TITLE", out valItem);
@@ -39,6 +44,9 @@ namespace SBMAPIInterface
 
             fields.TryGetProperty("STATE", out valItem);
             State = valItem.GetProperty("value").GetString();
+
+            fields.TryGetProperty("ACTIVEINACTIVE", out valItem);
+            IsActive = valItem.GetProperty("name").GetString() != "Inactive";
 
             fields.TryGetProperty("ISSUETYPE", out valItem);
             Type = valItem.GetProperty("name").GetString();

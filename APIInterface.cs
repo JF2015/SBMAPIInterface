@@ -95,7 +95,7 @@ namespace SBMAPIInterface
                         return;
 
                     WorkItem item = new WorkItem();
-                    item.ParseFromJson(itemResponse.RootElement.GetProperty("item"));
+                    item.ParseFromJson(itemResponse.RootElement.GetProperty("item"), true);
 
                     Console.WriteLine($"{counter} {item.ID} {item.Title}");
 
@@ -133,7 +133,7 @@ namespace SBMAPIInterface
                 foreach (var item in itemResponse.RootElement.GetProperty("items").EnumerateArray())
                 {
                     WorkItem workItem = new WorkItem();
-                    workItem.ParseFromJson(item);
+                    workItem.ParseFromJson(item, true);
                     items.Add(workItem);
                 }
             }
@@ -171,7 +171,7 @@ namespace SBMAPIInterface
                     foreach (var item in itemResponse.RootElement.GetProperty("items").EnumerateArray())
                     {
                         WorkItem workItem = new WorkItem();
-                        workItem.ParseFromJson(item);
+                        workItem.ParseFromJson(item, true);
                         items.Add(workItem);
                     }
 

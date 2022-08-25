@@ -10,6 +10,7 @@ namespace SBMAPIInterface
         public string Description { get; set; }
         public string Submitter { get; set; }
         public string State { get; set; }
+        public string Severity { get; set; }
         public string? Project { get; set; }
         public DateTime? SubmitDate { get; set; }
 
@@ -34,8 +35,19 @@ namespace SBMAPIInterface
             fields.TryGetProperty("PROJECTID", out valItem);
             Project = valItem.GetProperty("name").GetString();
 
-            fields.TryGetProperty("SUBMITDATE", out valItem);
-            SubmitDate = toDate(valItem.GetProperty("svalue").GetString());
+            fields.TryGetProperty("SEVERITY", out valItem);
+            Severity = valItem.GetProperty("name").GetString();
+
+            try
+            {
+                fields.TryGetProperty("SUBMITDATE", out valItem);
+                SubmitDate = toDate(valItem.GetProperty("svalue").GetString());
+            }
+            catch (Exception e)
+            {
+                //TODO: Handle cases where datetime parsing fails - localization
+                Console.WriteLine(e);
+            }
         }
 
         private static DateTime? toDate(string s)

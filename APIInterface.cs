@@ -85,6 +85,8 @@ namespace SBMAPIInterface
                 {
                     Interlocked.Increment(ref counter);
                     var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getItem/{table}/{i}");
+                    getItemRequest.Content = new StringContent("{fixedFields: false, includeNotes: true}");
+
                     var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
                     var itemResponse = JsonDocument.Parse(getItemResult.Result);
@@ -119,6 +121,8 @@ namespace SBMAPIInterface
             try
             {
                 var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/workcenter/tmtrack.dll?JSONPage&command=jsonapi&JSON_Func=getitemsbyitemid&JSON_P1={table}&JSON_P2=*&pagesize=1000");
+                getItemRequest.Content = new StringContent("{fixedFields: false, includeNotes: true}");
+
                 var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
                 var itemResponse = JsonDocument.Parse(getItemResult.Result);
@@ -155,6 +159,8 @@ namespace SBMAPIInterface
                 while (true)
                 {
                     var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getitemsbylistingreport/{reportID}?pagesize={increment}&rptkey=1312321&recno={startID}");
+                    getItemRequest.Content = new StringContent("{fixedFields: false, includeNotes: true}");
+
                     var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
                     var itemResponse = JsonDocument.Parse(getItemResult.Result);

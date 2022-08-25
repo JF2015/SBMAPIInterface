@@ -23,7 +23,9 @@ namespace SBMAPIInterface
             Console.WriteLine("Connecting to SBM");
 
             APIInterface sbmApiInterface = new APIInterface(serverAdress);
-            sbmApiInterface.Open(userName, password);
+            bool success = sbmApiInterface.Open(userName, password);
+            if (!success)
+                return;
 
             string version = sbmApiInterface.GetVersion();
             Console.WriteLine(version);

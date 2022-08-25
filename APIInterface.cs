@@ -14,23 +14,25 @@ namespace SBMAPIInterface
     {
         private HttpClient m_client = new HttpClient();
         private string m_address;
+        private int m_repeatKey = 1312321; //random
 
         public APIInterface(string serverAddress)
         {
             m_address = serverAddress;
         }
 
-        public void Open(string userName, string password)
+        public bool Open(string userName, string password)
         {
             m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             bool authenticated = getAuthToken(m_client, userName, password, out string token);
             if (!authenticated)
-                return;
+                return false;
 
             m_client.DefaultRequestHeaders.Add("alfssoauthntoken", token);
 
             Console.WriteLine("Received Auth Token");
+            return true;
         }
 
         private bool getAuthToken(HttpClient client, string userName, string password, out string token)
@@ -52,6 +54,13 @@ namespace SBMAPIInterface
             }
 
             var tokenResponse = JsonDocument.Parse(result.Result);
+            var error = tokenResponse.RootElement.GetProperty("status");
+            if (error.GetString() == "Error")
+            {
+                var errorDetails = tokenResponse.RootElement.GetProperty("error").GetProperty("detail").GetString();
+                Console.WriteLine($"Failed to authenticate: {errorDetails}");
+                return false;
+            }
             tokenResponse.RootElement.GetProperty("token").TryGetProperty("value", out JsonElement val);
 
             token = val.GetString();
@@ -156,9 +165,10 @@ namespace SBMAPIInterface
             {
                 int startID = 0;
                 const int increment = 100;
+                m_repeatKey++;
                 while (true)
                 {
-                    var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getitemsbylistingreport/{reportID}?pagesize={increment}&rptkey=1312321&recno={startID}");
+                    var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getitemsbylistingreport/{reportID}?pagesize={increment}&rptkey={m_repeatKey}&recno={startID}");
                     getItemRequest.Content = new StringContent("{fixedFields: false, includeNotes: true}");
 
                     var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();

@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SBMAPIInterface
@@ -14,13 +14,19 @@ namespace SBMAPIInterface
     {
         private HttpClient m_client = new HttpClient();
         private string m_address;
-        private int m_repeatKey = 1312321; //random
+        private int m_repeatKey = 1312321;
 
         public APIInterface(string serverAddress)
         {
             m_address = serverAddress;
         }
 
+        /// <summary>
+        /// Open the connection to receive the authentication token
+        /// </summary>
+        /// <param name="userName"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
         public bool Open(string userName, string password)
         {
             m_client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -31,7 +37,7 @@ namespace SBMAPIInterface
 
             m_client.DefaultRequestHeaders.Add("alfssoauthntoken", token);
 
-            Console.WriteLine("Received Auth Token");
+            Debug.WriteLine("Received Auth Token");
             return true;
         }
 
@@ -49,7 +55,7 @@ namespace SBMAPIInterface
 
             if (result.IsFaulted)
             {
-                Console.WriteLine("Failed to authenticate");
+                Debug.WriteLine("Failed to authenticate");
                 return false;
             }
 
@@ -58,15 +64,24 @@ namespace SBMAPIInterface
             if (error.GetString() == "Error")
             {
                 var errorDetails = tokenResponse.RootElement.GetProperty("error").GetProperty("detail").GetString();
-                Console.WriteLine($"Failed to authenticate: {errorDetails}");
+                Debug.WriteLine($"Failed to authenticate: {errorDetails}");
                 return false;
             }
             tokenResponse.RootElement.GetProperty("token").TryGetProperty("value", out JsonElement val);
 
-            token = val.GetString();
+            var value = val.GetString();
+
+            if (value == null)
+                return false;
+
+            token = value;
             return true;
         }
 
+        /// <summary>
+        /// Read the version of SBM being interfaced
+        /// </summary>
+        /// <returns></returns>
         public string GetVersion()
         {
             var postRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getversion");
@@ -84,15 +99,12 @@ namespace SBMAPIInterface
         /// <param name="range"></param>
         public List<WorkItem> ReadItems(int table, int range)
         {
-            int counter = 0;
-
             List<WorkItem> items = new List<WorkItem>();
             List<int> integerList = Enumerable.Range(0, range).ToList();
             Parallel.ForEach(integerList, i =>
             {
                 try
                 {
-                    Interlocked.Increment(ref counter);
                     var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getItem/{table}/{i}");
                     getItemRequest.Content = new StringContent("{fixedFields: false, includeNotes: true}");
 
@@ -106,14 +118,12 @@ namespace SBMAPIInterface
                     WorkItem item = new WorkItem();
                     item.ParseFromJson(itemResponse.RootElement.GetProperty("item"), true);
 
-                    Console.WriteLine($"{counter} {item.ID} {item.Title}");
-
                     lock (items)
                         items.Add(item);
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    Debug.WriteLine(e);
                 }
             });
 
@@ -148,7 +158,7 @@ namespace SBMAPIInterface
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.WriteLine(e);
             }
 
             return items;
@@ -193,7 +203,7 @@ namespace SBMAPIInterface
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.WriteLine(e);
             }
 
             return items;

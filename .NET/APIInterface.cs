@@ -89,6 +89,8 @@ namespace SBMAPIInterface
 
             var versionResponse = JsonDocument.Parse(result.Result);
             var version = versionResponse.RootElement.GetProperty("version").GetString();
+            if (version == null)
+                return string.Empty;
             return version;
         }
 
@@ -128,6 +130,30 @@ namespace SBMAPIInterface
             });
 
             return items;
+        }
+
+        /// <summary>
+        /// Returns the names of all available transitions for a work item
+        /// </summary>
+        /// <param name="table">Table ID</param>
+        /// <param name="id">ID of the work item</param>
+        /// <returns></returns>
+        public IEnumerable<string> GetItemTransitions(int table, int id)
+        {
+            var transitions = new List<string>();
+            var getItemRequest = new HttpRequestMessage(HttpMethod.Post, $"{m_address}/jsonapi/getitemTransitions/{table}/{id}");
+
+            var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
+
+            var itemResponse = JsonDocument.Parse(getItemResult.Result).RootElement;
+            var type = itemResponse.GetProperty("result").GetProperty("type");
+            if (type.GetString() == "ERROR")
+                return transitions;
+
+            var jsonItems = itemResponse.GetProperty("transitions").EnumerateArray();
+            transitions.AddRange(jsonItems.Select(transition => transition.GetProperty("name").GetString()));
+
+            return transitions;
         }
 
         /// <summary>
@@ -183,19 +209,20 @@ namespace SBMAPIInterface
 
                     var getItemResult = m_client.SendAsync(getItemRequest).Result.Content.ReadAsStringAsync();
 
-                    var itemResponse = JsonDocument.Parse(getItemResult.Result);
-                    var type = itemResponse.RootElement.GetProperty("result").GetProperty("type");
+                    var itemResponse = JsonDocument.Parse(getItemResult.Result).RootElement;
+                    var type = itemResponse.GetProperty("result").GetProperty("type");
                     if (type.GetString() == "ERROR")
                         return items;
 
-                    foreach (var item in itemResponse.RootElement.GetProperty("items").EnumerateArray())
+                    var jsonItems = itemResponse.GetProperty("items").EnumerateArray();
+                    foreach (var item in jsonItems)
                     {
                         WorkItem workItem = new WorkItem();
                         workItem.ParseFromJson(item, true);
                         items.Add(workItem);
                     }
 
-                    if (itemResponse.RootElement.GetProperty("items").EnumerateArray().Count() < increment)
+                    if (jsonItems.Count() < increment)
                         break;
 
                     startID += increment;

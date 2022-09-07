@@ -11,10 +11,13 @@ namespace SBMAPIInterface
         public string Description { get; set; }
         public string Submitter { get; set; }
         public string Owner { get; set; }
+        public string SecondaryOwner { get; set; }
+        public string LastModifier { get; set; }
         public string State { get; set; }
         public string Type { get; set; }
         public string? Project { get; set; }
         public DateTime? SubmitDate { get; set; }
+        public DateTime? LastModified { get; set; }
         public string Link { get; set; }
         public bool IsActive { get; set; }
 
@@ -22,6 +25,7 @@ namespace SBMAPIInterface
         public string Severity { get; set; }
         public string SoftwareEngineer { get; set; }
         public string QAEngineer { get; set; }
+        public string DevPhase { get; set; }
         public DateTime? CloseDate { get; set; }
 
         public void ParseFromJson(JsonElement itemElement, bool parseCustomFields)
@@ -57,10 +61,29 @@ namespace SBMAPIInterface
             fields.TryGetProperty("OWNER", out valItem);
             Owner = valItem.GetProperty("name").GetString();
 
+            fields.TryGetProperty("SECONDARYOWNER", out valItem);
+
+            if (valItem.TryGetProperty("name", out var secondaryOwner))
+                SecondaryOwner = secondaryOwner.GetString();
+
+            fields.TryGetProperty("LASTMODIFIER", out valItem);
+            LastModifier = valItem.GetProperty("name").GetString();
+
             try
             {
                 fields.TryGetProperty("SUBMITDATE", out valItem);
                 SubmitDate = toDate(valItem.GetProperty("svalue").GetString());
+            }
+            catch (Exception e)
+            {
+                //TODO: Handle cases where datetime parsing fails - localization
+                Console.WriteLine(e);
+            }
+
+            try
+            {
+                fields.TryGetProperty("LASTMODIFIEDDATE", out valItem);
+                LastModified = toDate(valItem.GetProperty("svalue").GetString());
             }
             catch (Exception e)
             {
@@ -78,6 +101,9 @@ namespace SBMAPIInterface
 
                 fields.TryGetProperty("SQA", out valItem);
                 QAEngineer = valItem.GetProperty("name").GetString();
+
+                fields.TryGetProperty("DEVPHASE", out valItem);
+                DevPhase = valItem.GetProperty("name").GetString();
 
                 try
                 {

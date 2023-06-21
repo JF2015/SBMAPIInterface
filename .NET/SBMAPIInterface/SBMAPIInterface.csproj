@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+	  <Authors>Jens Fiedler</Authors>
+	  <Version>1.0.0</Version>
+	  <Description>Library for querying data from SBM</Description>
+	  <RepositoryUrl>https://github.com/JF2015/SBMAPIInterface</RepositoryUrl>
+	  <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+	  <ImplicitUsings>enable</ImplicitUsings>
+	  <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

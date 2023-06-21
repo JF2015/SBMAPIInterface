@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Linq;
+using SBMAPIInterface;
 
-namespace SBMAPIInterface
+namespace SBMAPIInterfaceTest
 {
     class Program
     {
